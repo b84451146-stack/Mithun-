@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mithun ✈</title>
+<style>
+  :root { --bg:#05070d; --fg:#d7f3ff; --dim:#2c4a63; --accent:#ffd36b; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  pre{margin:0;font-family:"Courier New",ui-monospace,monospace;line-height:1.05;white-space:pre;text-align:left}
+  #sky{font-size:min(2.4vw,15px)}
+  #name{font-size:min(3.2vw,22px);color:var(--accent);margin-top:14px;letter-spacing:.1em;text-align:center}
+</style>
+</head>
+<body>
+<pre id="sky"></pre>
+<pre id="name"></pre>
+<script>
+const W = 90, H = 26;
+const plane = [
+"         __|__          ",
+"  --o--o--(_)--o--o--   ",
+"      /  \\___/  \\       ",
+"   ___\\__/     \\__/___  ",
+];
+const planeTop = [
+"          |\\            ",
+"          | \\           ",
+"  ________|__\\________  ",
+" <_________________(_)>>",
+"            \\  /        ",
+"             \\/         ",
+];
+// simple side-view plane
+const art = [
+"                 __                    ",
+"                 \\ `.                  ",
+"                  \\  `.                ",
+"   |\\              \\   `-._____________",
+"   | \\______________\\_______________   `.",
+"   |  o  o  o  o  o  o  o  o  o  ___>>>  )",
+"   |/``````````````/````````````````   .'",
+"                  /  .-'`'-.-'`'-'''''  ",
+"                 /  .'                  ",
+"                 /.'                    ",
+];
+const NAME = "M I T H U N";
+const sky = document.getElementById("sky");
+const nameEl = document.getElementById("name");
+
+// clouds
+const clouds = Array.from({length:7},()=>({
+  x: Math.random()*W, y: 1+Math.floor(Math.random()*(H-3)),
+  s: 0.15+Math.random()*0.35, w: 6+Math.floor(Math.random()*8)
+}));
+const stars = Array.from({length:30},()=>({x:Math.floor(Math.random()*W),y:Math.floor(Math.random()*H),p:Math.random()*6}));
+let t = 0;
+
+function put(g, x, y, str){
+  if(y<0||y>=H) return;
+  for(let i=0;i<str.length;i++){
+    const cx = x+i;
+    if(cx>=0 && cx<W && str[i]!==" ") g[y][cx]=str[i];
+  }
+}
+
+function frame(){
+  const g = Array.from({length:H},()=>Array(W).fill(" "));
+  stars.forEach(s=>{ g[s.y][s.x] = (Math.sin(t*0.08+s.p)>0.3)?"*":"."; });
+  clouds.forEach(c=>{
+    c.x -= c.s; if(c.x < -c.w-4) c.x = W+Math.random()*10;
+    const x=Math.floor(c.x);
+    put(g,x+1,c.y-1,"_".repeat(c.w-2));
+    put(g,x,c.y,"("+"~".repeat(c.w-1)+")");
+  });
+  // plane position: sweeps across with a gentle bob
+  const px = Math.floor(((t*0.6) % (W+60)) - 45);
+  const py = Math.floor(H/2 - 5 + Math.sin(t*0.07)*3);
+  art.forEach((row,i)=>put(g,px,py+i,row));
+  // propeller / engine flicker & exhaust trail
+  const spin = ["|","/","-","\\"][t%4];
+  put(g,px+5,py+5,spin);
+  for(let i=1;i<=14;i++){
+    const ch = i<5?"=":i<10?"-":".";
+    if((i+t)%3) put(g,px-i,py+5,ch);
+  }
+  sky.textContent = g.map(r=>r.join("")).join("\n");
+
+  // name: typewriter reveal then gentle shimmer
+  const shown = Math.min(NAME.length, Math.floor(t/6));
+  nameEl.textContent = "~ " + NAME.slice(0,shown) + (shown<NAME.length||t%30<15?"_":" ") + " ~";
+  t++;
+}
+frame(); setInterval(frame, 60);
+</script>
+</body>
+</html>
