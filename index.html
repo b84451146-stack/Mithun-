@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mithun 🪼</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#020611}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+       background:radial-gradient(ellipse at 50% 30%,#0a1f3d 0%,#020611 70%)}
+  pre{margin:0;font-family:"Courier New",ui-monospace,monospace;line-height:1.0;white-space:pre}
+  #sea{font-size:min(2.1vw,14px);text-shadow:0 0 6px currentColor}
+  #name{font-size:min(4vw,26px);margin-top:12px;letter-spacing:.25em;font-weight:bold;text-align:center}
+</style>
+</head>
+<body>
+<pre id="sea"></pre>
+<pre id="name"></pre>
+<script>
+// ===== change the name here =====
+const NAME = "MITHUN";
+// ================================
+const W = 100, H = 34;
+const sea = document.getElementById("sea");
+const nameEl = document.getElementById("name");
+const rnd = (a,b)=>a+Math.random()*(b-a);
+
+const jellies = Array.from({length:4},(_,i)=>({
+  x: 15+i*22+rnd(-4,4), y: rnd(6,16), r: i===1?11:rnd(6,9),
+  hue: i*80+rnd(0,40), ph: rnd(0,6.28), vx: rnd(-.05,.05), sp: rnd(.8,1.2), tl: Math.floor(rnd(9,15))
+}));
+jellies[1].big = true;
+const bubbles = Array.from({length:35},()=>({x:rnd(0,W),y:rnd(0,H),s:rnd(.05,.25),c:rnd(0,6)}));
+const plankton = Array.from({length:50},()=>({x:rnd(0,W),y:rnd(0,H),p:rnd(0,6.28),h:rnd(160,300)}));
+let t = 0;
+
+const hsl=(h,s,l)=>`hsl(${((h%360)+360)%360},${s}%,${l}%)`;
+const esc = c => c==="<"?"&lt;":c===">"?"&gt;":c==="&"?"&amp;":c;
+
+function frame(){
+  const ch = Array.from({length:H},()=>Array(W).fill(" "));
+  const co = Array.from({length:H},()=>Array(W).fill(null));
+  const set=(x,y,c,col)=>{x=Math.round(x);y=Math.round(y);
+    if(x>=0&&x<W&&y>=0&&y<H){ch[y][x]=c;co[y][x]=col;}};
+
+  plankton.forEach(p=>{
+    const b=Math.sin(t*.06+p.p);
+    if(b>-.2) set(p.x+Math.sin(t*.02+p.p)*1.5,p.y,b>.6?"*":".",hsl(p.h,70,b>.6?75:45));
+  });
+  bubbles.forEach(b=>{
+    b.y-=b.s; b.x+=Math.sin(t*.05+b.c)*.12;
+    if(b.y<0){b.y=H-1;b.x=rnd(0,W);}
+    set(b.x,b.y,"o",hsl(190,60,60));
+  });
+
+  jellies.forEach(j=>{
+    const pulse=Math.sin(t*.09*j.sp+j.ph);          // -1..1
+    const rx=j.r*(1+pulse*.12), ry=j.r*.55*(1-pulse*.18);
+    const cx=j.x+Math.sin(t*.015+j.ph)*6;
+    const cy=j.y-pulse*1.8+Math.sin(t*.02+j.ph)*2;
+    const hue=j.hue+t*.6;
+    // bell (top half-ellipse)
+    for(let dy=0;dy<=ry;dy++){
+      const half=rx*Math.sqrt(Math.max(0,1-(dy/ry)**2));
+      for(let dx=-Math.floor(half);dx<=Math.floor(half);dx++){
+        const edge=Math.abs(dx)>=Math.floor(half)-0;
+        const top=dy>=Math.floor(ry);
+        const glow=1-Math.abs(dx)/(rx+1);
+        let c=" ";
+        if(edge) c=dx<0?"(":")";
+        else if(top) c=".";
+        else if((dx+dy)%3===0) c="o";
+        else if(dy===0&&!edge) c="_";
+        else c=glow>.6?":":"'";
+        if(c!==" ") set(cx+dx,cy-dy,c,hsl(hue+dx*3,90,45+glow*30));
+      }
+    }
+    // frilly rim
+    for(let dx=-Math.floor(rx);dx<=Math.floor(rx);dx++)
+      set(cx+dx,cy+1,(dx+Math.floor(t/3))%2?"~":"-",hsl(hue+60+dx*4,95,65));
+    // tentacles
+    const n=Math.max(5,Math.floor(rx));
+    for(let k=0;k<n;k++){
+      const bx=cx-rx*.8+(k/(n-1))*rx*1.6;
+      const len=j.tl+(k%2?3:0)+(j.big?4:0);
+      for(let s=2;s<=len;s++){
+        const sway=Math.sin(t*.1-s*.5+k)*(s*.18)-pulse*s*.12;
+        const c=s>len-3?".":(s%3===0?"}":"|");
+        const ch2=Math.sin(t*.1-s*.5+k)>.4?"/":Math.sin(t*.1-s*.5+k)<-.4?"\\":c;
+        set(bx+sway,cy+s,ch2,hsl(hue+s*8+k*5,90,70-s*1.5));
+      }
+    }
+    // oral arms (thicker, middle)
+    for(let s=2;s<j.tl+2;s++){
+      const sw=Math.sin(t*.08-s*.4)*(s*.12);
+      set(cx+sw-1,cy+s,"{",hsl(hue+120,80,72));
+      set(cx+sw+1,cy+s,"}",hsl(hue+120,80,72));
+    }
+    // drift
+    j.x+=j.vx; if(j.x<8||j.x>W-8) j.vx*=-1;
+    j.y+= -pulse*.03 + .008;
+    if(j.y>H-j.tl-8) j.y=H-j.tl-8; if(j.y<5) j.y=5;
+  });
+
+  let out="",last=null;
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const c=co[y][x];
+      if(c!==last){ if(last!==null) out+="</span>"; if(c!==null) out+=`<span style="color:${c}">`; last=c; }
+      out+=esc(ch[y][x]);
+    }
+    if(last!==null){out+="</span>";last=null;}
+    out+="\n";
+  }
+  sea.innerHTML=out;
+
+  // rainbow name with wave
+  const shown=Math.min(NAME.length,Math.floor(t/7));
+  let n="";
+  for(let i=0;i<shown;i++) n+=`<span style="color:${hsl(t*2+i*40,95,65)};text-shadow:0 0 10px ${hsl(t*2+i*40,95,55)}">${NAME[i]}</span>`;
+  nameEl.innerHTML=n||"&nbsp;";
+  t++;
+}
+frame(); setInterval(frame,55);
+</script>
+</body>
+</html>
